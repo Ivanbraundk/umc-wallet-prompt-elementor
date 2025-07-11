@@ -13,8 +13,10 @@ import {
   Network,
   Download,
   Loader2,
-  ArrowRight
+  ArrowRight,
+  Smartphone
 } from 'lucide-react';
+import { detectDevice, openMobileWallet, type DeviceInfo } from '@/lib/mobile-utils';
 
 // Extend Window interface to include ethereum
 declare global {
@@ -32,6 +34,7 @@ interface WalletState {
   userAddress: string | null;
   isLoading: boolean;
   currentStep: WalletStep;
+  deviceInfo: DeviceInfo;
 }
 
 const UMC_CONTRACT_ADDRESS = "0x80f2c9eD338BFcE2Bb128eCCBb9B11bbCa041A82";
@@ -46,11 +49,14 @@ export function WalletOnboarding() {
     isPolygonNetwork: false,
     userAddress: null,
     isLoading: false,
-    currentStep: 'install'
+    currentStep: 'install',
+    deviceInfo: detectDevice()
   });
 
   // Check MetaMask installation on component mount
   useEffect(() => {
+    const deviceInfo = detectDevice();
+    setWalletState(prev => ({ ...prev, deviceInfo }));
     checkMetaMaskInstallation();
   }, []);
 
@@ -276,8 +282,12 @@ export function WalletOnboarding() {
   };
 
   const steps = [
-    { key: 'install' as WalletStep, title: 'Install MetaMask', description: 'Download and install MetaMask browser extension' },
-    { key: 'connect' as WalletStep, title: 'Connect Wallet', description: 'Connect your MetaMask wallet' },
+    { 
+      key: 'install' as WalletStep, 
+      title: walletState.deviceInfo.isMobile ? 'Install Mobile Wallet' : 'Install MetaMask', 
+      description: walletState.deviceInfo.isMobile ? 'Download and install a mobile wallet app' : 'Download and install MetaMask browser extension' 
+    },
+    { key: 'connect' as WalletStep, title: 'Connect Wallet', description: 'Connect your wallet to continue' },
     { key: 'network' as WalletStep, title: 'Switch to Polygon', description: 'Switch to Polygon network' },
     { key: 'complete' as WalletStep, title: 'Ready for UMC', description: 'Your wallet is ready for UMC tokens' },
   ];
@@ -340,22 +350,60 @@ export function WalletOnboarding() {
           <CardContent className="p-6 space-y-6">
             {walletState.currentStep === 'install' && (
               <div className="text-center space-y-4">
-                <AlertCircle className="w-12 h-12 text-warning mx-auto" />
+                {walletState.deviceInfo.isMobile ? (
+                  <Smartphone className="w-12 h-12 text-primary mx-auto" />
+                ) : (
+                  <AlertCircle className="w-12 h-12 text-warning mx-auto" />
+                )}
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">MetaMask Required</h3>
+                  <h3 className="text-xl font-semibold mb-2">
+                    {walletState.deviceInfo.isMobile ? 'Mobile Wallet Required' : 'MetaMask Required'}
+                  </h3>
                   <p className="text-muted-foreground mb-4">
-                    Install MetaMask to connect your wallet and access UMC tokens
+                    {walletState.deviceInfo.isMobile 
+                      ? 'Install a mobile wallet app to connect and access UMC tokens'
+                      : 'Install MetaMask to connect your wallet and access UMC tokens'
+                    }
                   </p>
-                  <Button 
-                    variant="crypto" 
-                    size="lg" 
-                    className="w-full"
-                    onClick={() => window.open('https://metamask.io/download/', '_blank')}
-                  >
-                    <Download className="w-5 h-5 mr-2" />
-                    Install MetaMask
-                    <ExternalLink className="w-4 h-4 ml-2" />
-                  </Button>
+                  
+                  {walletState.deviceInfo.isMobile ? (
+                    <div className="space-y-3">
+                      <Button 
+                        variant="crypto" 
+                        size="lg" 
+                        className="w-full"
+                        onClick={() => openMobileWallet('metamask', 'install')}
+                      >
+                        <Download className="w-5 h-5 mr-2" />
+                        Install MetaMask Mobile
+                        <ExternalLink className="w-4 h-4 ml-2" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="lg" 
+                        className="w-full"
+                        onClick={() => openMobileWallet('trustWallet', 'install')}
+                      >
+                        <Download className="w-5 h-5 mr-2" />
+                        Install Trust Wallet
+                        <ExternalLink className="w-4 h-4 ml-2" />
+                      </Button>
+                      <div className="text-sm text-muted-foreground mt-4">
+                        {walletState.deviceInfo.isAndroid ? 'Android' : 'iOS'} detected
+                      </div>
+                    </div>
+                  ) : (
+                    <Button 
+                      variant="crypto" 
+                      size="lg" 
+                      className="w-full"
+                      onClick={() => window.open('https://metamask.io/download/', '_blank')}
+                    >
+                      <Download className="w-5 h-5 mr-2" />
+                      Install MetaMask
+                      <ExternalLink className="w-4 h-4 ml-2" />
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -366,22 +414,54 @@ export function WalletOnboarding() {
                 <div>
                   <h3 className="text-xl font-semibold mb-2">Connect Your Wallet</h3>
                   <p className="text-muted-foreground mb-4">
-                    Connect your MetaMask wallet to continue
+                    {walletState.deviceInfo.isMobile 
+                      ? 'Connect your mobile wallet to continue'
+                      : 'Connect your MetaMask wallet to continue'
+                    }
                   </p>
-                  <Button 
-                    variant="crypto" 
-                    size="lg" 
-                    className="w-full"
-                    onClick={connectWallet}
-                    disabled={walletState.isLoading}
-                  >
-                    {walletState.isLoading ? (
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    ) : (
-                      <Wallet className="w-5 h-5 mr-2" />
-                    )}
-                    Connect Wallet
-                  </Button>
+                  
+                  {walletState.deviceInfo.isMobile && !walletState.deviceInfo.hasMetaMask ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        If you have a wallet app installed, try opening this page in your wallet's browser:
+                      </p>
+                      <Button 
+                        variant="crypto" 
+                        size="lg" 
+                        className="w-full"
+                        onClick={() => openMobileWallet('metamask', 'open')}
+                      >
+                        <Wallet className="w-5 h-5 mr-2" />
+                        Open in MetaMask
+                        <ExternalLink className="w-4 h-4 ml-2" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="lg" 
+                        className="w-full"
+                        onClick={() => openMobileWallet('trustWallet', 'open')}
+                      >
+                        <Wallet className="w-5 h-5 mr-2" />
+                        Open in Trust Wallet
+                        <ExternalLink className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button 
+                      variant="crypto" 
+                      size="lg" 
+                      className="w-full"
+                      onClick={connectWallet}
+                      disabled={walletState.isLoading}
+                    >
+                      {walletState.isLoading ? (
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      ) : (
+                        <Wallet className="w-5 h-5 mr-2" />
+                      )}
+                      Connect Wallet
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
