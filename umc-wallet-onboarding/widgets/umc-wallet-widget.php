@@ -7,7 +7,7 @@ class UMC_Wallet_Widget extends \Elementor\Widget_Base {
     }
 
     public function get_title() {
-        return 'UMC Wallet Prompt';
+        return 'UMC Wallet Connect';
     }
 
     public function get_icon() {

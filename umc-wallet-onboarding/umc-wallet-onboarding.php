@@ -1,12 +1,12 @@
 <?php
 /**
- * Plugin Name: UMC Wallet Onboarding Prompt
+ * Plugin Name: UMC Wallet Connect
  * Plugin URI: https://www.umojacoin.com
- * Description: A WordPress plugin that integrates directly into Elementor as a visible, drag-and-drop widget, allowing full editing of wallet onboarding UI elements while handling MetaMask, Polygon, and UMC logic.
- * Version: 1.05
+ * Description: A comprehensive wallet connection plugin that integrates directly into Elementor with mobile device support, multi-wallet compatibility, and seamless UMC token access on Polygon network.
+ * Version: 1.6
  * Author: UMC Tech Ltd
  * Author URI: https://www.umojacoin.com
- * Text Domain: umc-wallet
+ * Text Domain: umc-wallet-connect
  */
 
 // Prevent direct access
@@ -40,7 +40,7 @@ class UMC_Wallet_Onboarding {
     
     public function admin_notice_missing_elementor() {
         echo '<div class="notice notice-warning is-dismissible">';
-        echo '<p><strong>UMC Wallet Onboarding</strong> requires Elementor to be installed and activated.</p>';
+        echo '<p><strong>UMC Wallet Connect</strong> requires Elementor to be installed and activated.</p>';
         echo '</div>';
     }
     
@@ -62,7 +62,7 @@ class UMC_Wallet_Onboarding {
             'umc-wallet-js',
             UMC_WALLET_URL . 'assets/js/wallet.js',
             ['ethers-js'],
-            '1.05',
+            '1.6',
             true
         );
         
@@ -70,7 +70,7 @@ class UMC_Wallet_Onboarding {
             'umc-wallet-css',
             UMC_WALLET_URL . 'assets/css/wallet.css',
             [],
-            '1.05'
+            '1.6'
         );
     }
 }
