@@ -50,13 +50,17 @@ export function WalletOnboarding() {
     userAddress: null,
     isLoading: false,
     currentStep: 'install',
-    deviceInfo: detectDevice()
+    deviceInfo: {
+      isMobile: false,
+      isAndroid: false,
+      isIOS: false,
+      hasMetaMask: false,
+      hasWalletConnect: false
+    }
   });
 
   // Check MetaMask installation on component mount
   useEffect(() => {
-    const deviceInfo = detectDevice();
-    setWalletState(prev => ({ ...prev, deviceInfo }));
     checkMetaMaskInstallation();
   }, []);
 
@@ -74,13 +78,17 @@ export function WalletOnboarding() {
   }, []);
 
   const checkMetaMaskInstallation = async () => {
-    const isInstalled = typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask;
+    const deviceInfo = await detectDevice();
     
-    if (isInstalled) {
-      setWalletState(prev => ({ ...prev, isMetaMaskInstalled: true }));
+    setWalletState(prev => ({
+      ...prev,
+      deviceInfo,
+      isMetaMaskInstalled: deviceInfo.hasMetaMask,
+      currentStep: deviceInfo.hasMetaMask ? 'connect' : 'install'
+    }));
+    
+    if (deviceInfo.hasMetaMask) {
       await checkWalletConnection();
-    } else {
-      setWalletState(prev => ({ ...prev, currentStep: 'install' }));
     }
   };
 

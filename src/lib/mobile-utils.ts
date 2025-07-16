@@ -6,17 +6,22 @@ export interface DeviceInfo {
   hasWalletConnect: boolean;
 }
 
-export function detectDevice(): DeviceInfo {
+export async function detectDevice(): Promise<DeviceInfo> {
   const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
   
   const isAndroid = /android/i.test(userAgent);
   const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
   const isMobile = isAndroid || isIOS;
   
-  // Check for MetaMask
-  const hasMetaMask = typeof window !== 'undefined' && 
+  // Check for MetaMask browser extension
+  let hasMetaMask = typeof window !== 'undefined' && 
     typeof window.ethereum !== 'undefined' && 
     window.ethereum.isMetaMask;
+  
+  // On mobile, check if MetaMask app is installed
+  if (isMobile && !hasMetaMask) {
+    hasMetaMask = await checkMobileAppInstalled('metamask');
+  }
   
   // Basic WalletConnect detection (can be enhanced)
   const hasWalletConnect = typeof window !== 'undefined' && 
@@ -29,6 +34,43 @@ export function detectDevice(): DeviceInfo {
     hasMetaMask,
     hasWalletConnect
   };
+}
+
+async function checkMobileAppInstalled(appType: 'metamask' | 'trustWallet'): Promise<boolean> {
+  return new Promise((resolve) => {
+    const scheme = appType === 'metamask' ? 'metamask://' : 'trust://';
+    const fallbackUrl = 'about:blank';
+    
+    // Create a hidden iframe to test the scheme
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = scheme;
+    
+    let resolved = false;
+    
+    // Set a timeout to detect if the app opens
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        document.body.removeChild(iframe);
+        resolve(false); // App not installed
+      }
+    }, 1000);
+    
+    // If app opens, page will lose focus
+    const blurHandler = () => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        document.body.removeChild(iframe);
+        window.removeEventListener('blur', blurHandler);
+        resolve(true); // App is installed
+      }
+    };
+    
+    window.addEventListener('blur', blurHandler);
+    document.body.appendChild(iframe);
+  });
 }
 
 export function getMobileWalletLinks() {
@@ -50,8 +92,8 @@ export function getMobileWalletLinks() {
   };
 }
 
-export function openMobileWallet(walletType: 'metamask' | 'trustWallet', action: 'open' | 'install') {
-  const device = detectDevice();
+export async function openMobileWallet(walletType: 'metamask' | 'trustWallet', action: 'open' | 'install') {
+  const device = await detectDevice();
   const links = getMobileWalletLinks();
   
   let url = '';
